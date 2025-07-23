@@ -1,7 +1,7 @@
-import CampaignCreator from '@/components/CampaignCreator';
+import ChatInterface from '@/components/ChatInterface';
 
 const Index = () => {
-  return <CampaignCreator />;
+  return <ChatInterface />;
 };
 
 export default Index;

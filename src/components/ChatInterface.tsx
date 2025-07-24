@@ -118,6 +118,8 @@ const ChatInterface = () => {
   };
 
   const handleTemplateSelect = (templateId: string) => {
+    addMessage("Template selected! Generating your campaign...", 'user');
+    
     setCampaignData(prev => {
       const updatedData = { ...prev, template: templateId };
       
@@ -125,19 +127,47 @@ const ChatInterface = () => {
         addMessage("🎉 Your campaign is ready! Here's your personalized design with your image and content integrated:", 'assistant',
           <CampaignPreview 
             campaignData={updatedData}
-            onDownload={() => addMessage("Campaign downloaded successfully! 📥", 'assistant')}
-            onPublish={() => addMessage("Campaign published to platform! 🚀", 'assistant')}
-            onRegenerate={() => addMessage("Regenerating campaign with new AI suggestions...", 'assistant')}
-            onEdit={() => addMessage("What would you like to edit?", 'assistant')}
+            onDownload={handleDownload}
+            onPublish={handlePublish}
+            onRegenerate={handleRegenerate}
+            onEdit={handleEdit}
           />
         );
         setCurrentStep('preview');
-      }, 1000);
+      }, 1500);
       
       return updatedData;
     });
-    
-    addMessage("Template selected! Generating your campaign...", 'user');
+  };
+
+  const handleDownload = () => {
+    addMessage("Campaign downloaded successfully! 📥", 'assistant');
+  };
+
+  const handlePublish = () => {
+    addMessage("Campaign published to platform! 🚀", 'assistant');
+  };
+
+  const handleRegenerate = () => {
+    addMessage("Regenerating campaign with new AI suggestions...", 'assistant');
+    // Reset to template selection with new suggestions
+    setTimeout(() => {
+      addMessage("Here are fresh template suggestions for your campaign:", 'assistant',
+        <TemplateSelector 
+          platform={campaignData.platform!} 
+          customDimensions={campaignData.customDimensions}
+          userImage={campaignData.image}
+          userText={campaignData.description}
+          onSelect={handleTemplateSelect} 
+        />
+      );
+    }, 1000);
+  };
+
+  const handleEdit = () => {
+    addMessage("What would you like to edit? You can update your campaign details:", 'assistant',
+      <CampaignDetails onComplete={handleDetailsComplete} />
+    );
   };
 
   const handleSendMessage = () => {

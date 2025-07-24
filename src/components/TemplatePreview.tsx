@@ -148,13 +148,63 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
           </div>
         );
 
+      // Additional templates for second set
+      case 'magazine-spread':
+        return (
+          <div 
+            className="relative bg-white p-2 rounded-lg"
+            style={{ width: previewWidth, height: previewHeight }}
+          >
+            <div className="grid grid-cols-3 h-full gap-1">
+              <div className="col-span-2 relative">
+                {userImage ? (
+                  <img src={userImage} alt="Product" className="w-full h-full object-cover rounded" />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-300 rounded" />
+                )}
+              </div>
+              <div className="flex flex-col justify-center p-2">
+                <h3 className="text-xs font-bold text-slate-800 mb-1">EDITORIAL</h3>
+                <p className="text-xs text-slate-600">{userText || "Luxury lifestyle"}</p>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'neon-glow':
+        return (
+          <div 
+            className="relative bg-black p-3 rounded-lg overflow-hidden"
+            style={{ width: previewWidth, height: previewHeight }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-cyan-500/20" />
+            <div className="relative z-10 h-full flex flex-col">
+              <div className="flex-1 relative">
+                {userImage ? (
+                  <img src={userImage} alt="Product" className="w-full h-full object-cover rounded border border-purple-500/50" />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-purple-900 to-cyan-900 rounded border border-purple-500/50" />
+                )}
+              </div>
+              <div className="pt-2 text-center">
+                <h3 className="text-sm font-bold text-cyan-400 uppercase tracking-wide">{userText || "Future Tech"}</h3>
+              </div>
+            </div>
+          </div>
+        );
+
       default:
         return (
           <div 
             className="bg-gray-100 flex items-center justify-center rounded-lg"
             style={{ width: previewWidth, height: previewHeight }}
           >
-            <span className="text-gray-500 text-xs">Template Preview</span>
+            <div className="text-center">
+              <span className="text-gray-500 text-xs">{template.name || "Template Preview"}</span>
+              {userImage && (
+                <img src={userImage} alt="Product" className="w-12 h-12 object-cover rounded mt-2 mx-auto" />
+              )}
+            </div>
           </div>
         );
     }

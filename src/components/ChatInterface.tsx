@@ -95,15 +95,23 @@ const ChatInterface = () => {
   };
 
   const handleDetailsComplete = (details: Partial<CampaignData>) => {
-    setCampaignData(prev => ({ ...prev, ...details }));
-    addMessage("Details saved! Now let's choose a design template. Your image will be automatically inserted into the template.", 'assistant',
-      <TemplateSelector 
-        platform={campaignData.platform!} 
-        customDimensions={campaignData.customDimensions}
-        onSelect={handleTemplateSelect} 
-      />
-    );
-    setCurrentStep('template');
+    setCampaignData(prev => {
+      const updatedData = { ...prev, ...details };
+      
+      // Use setTimeout to ensure state is updated before rendering TemplateSelector
+      setTimeout(() => {
+        addMessage("Details saved! Now let's choose a design template. Your image will be automatically inserted into the template.", 'assistant',
+          <TemplateSelector 
+            platform={updatedData.platform!} 
+            customDimensions={updatedData.customDimensions}
+            onSelect={handleTemplateSelect} 
+          />
+        );
+        setCurrentStep('template');
+      }, 100);
+      
+      return updatedData;
+    });
   };
 
   const handleTemplateSelect = (templateId: string) => {

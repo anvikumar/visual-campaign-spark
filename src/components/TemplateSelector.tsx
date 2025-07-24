@@ -1,59 +1,41 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { PlatformType } from '@/types/campaign';
-import { Sparkles, Minimize, MessageSquare, Image, Type, Zap } from 'lucide-react';
+import { Sparkles, Minimize, MessageSquare, Image, Type, Zap, RefreshCw } from 'lucide-react';
+import TemplatePreview from './TemplatePreview';
 
 interface TemplateSelectorProps {
   platform: PlatformType;
   customDimensions?: { width: number; height: number };
+  userImage?: string;
+  userText?: string;
   onSelect: (templateId: string) => void;
 }
 
-const TemplateSelector: React.FC<TemplateSelectorProps> = ({ platform, customDimensions, onSelect }) => {
-  const templates = [
-    {
-      id: 'hero-overlay',
-      name: 'Hero Overlay',
-      description: 'Bold text overlay on your image',
-      icon: Type,
-      preview: 'bg-gradient-to-br from-primary/20 to-creative/20'
-    },
-    {
-      id: 'split-layout',
-      name: 'Split Layout',
-      description: 'Image on one side, content on the other',
-      icon: Image,
-      preview: 'bg-gradient-to-r from-primary/20 to-transparent'
-    },
-    {
-      id: 'minimal-frame',
-      name: 'Minimal Frame',
-      description: 'Clean border with centered image',
-      icon: Minimize,
-      preview: 'bg-muted/20 border-2 border-dashed border-primary/30'
-    },
-    {
-      id: 'testimonial-style',
-      name: 'Testimonial Style',
-      description: 'Quote bubble with your image',
-      icon: MessageSquare,
-      preview: 'bg-gradient-to-tl from-success/20 to-primary/20'
-    },
-    {
-      id: 'product-showcase',
-      name: 'Product Showcase',
-      description: 'Feature highlights around your image',
-      icon: Sparkles,
-      preview: 'bg-gradient-to-br from-creative/20 to-primary/20'
-    },
-    {
-      id: 'dynamic-burst',
-      name: 'Dynamic Burst',
-      description: 'Energetic design with motion elements',
-      icon: Zap,
-      preview: 'bg-gradient-to-br from-warning/20 to-creative/20'
-    }
+const TemplateSelector: React.FC<TemplateSelectorProps> = ({ platform, customDimensions, userImage, userText, onSelect }) => {
+  const [currentSet, setCurrentSet] = useState(0);
+
+  const templateSets = [
+    [
+      { id: 'hero-overlay', name: 'Hero Overlay', style: 'bold-text-overlay' },
+      { id: 'split-layout', name: 'Split Layout', style: 'image-text-split' },
+      { id: 'minimal-frame', name: 'Minimal Frame', style: 'clean-border' },
+      { id: 'testimonial-style', name: 'Testimonial Style', style: 'quote-bubble' },
+      { id: 'product-showcase', name: 'Product Showcase', style: 'feature-highlights' },
+      { id: 'dynamic-burst', name: 'Dynamic Burst', style: 'motion-elements' }
+    ],
+    [
+      { id: 'magazine-spread', name: 'Magazine Spread', style: 'editorial-layout' },
+      { id: 'neon-glow', name: 'Neon Glow', style: 'vibrant-neon' },
+      { id: 'vintage-poster', name: 'Vintage Poster', style: 'retro-aesthetic' },
+      { id: 'geometric-modern', name: 'Geometric Modern', style: 'sharp-angles' },
+      { id: 'watercolor-artistic', name: 'Watercolor Artistic', style: 'soft-artistic' },
+      { id: 'tech-futuristic', name: 'Tech Futuristic', style: 'sci-fi-modern' }
+    ]
   ];
+
+  const currentTemplates = templateSets[currentSet];
 
   const getDimensions = () => {
     if (customDimensions) return `${customDimensions.width}x${customDimensions.height}`;
@@ -75,35 +57,79 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({ platform, customDim
     return dimensionMap[platform] || '800x600';
   };
 
+  const getDimensionsObject = () => {
+    if (customDimensions) return customDimensions;
+    
+    const dimensionMap: Record<string, { width: number; height: number }> = {
+      'FACEBOOK_FEED': { width: 1200, height: 630 },
+      'FACEBOOK_STORY': { width: 1080, height: 1920 },
+      'INSTAGRAM_FEED': { width: 1080, height: 1080 },
+      'INSTAGRAM_STORY': { width: 1080, height: 1920 },
+      'TIKTOK_FEED': { width: 1080, height: 1920 },
+      'PINTEREST_PIN': { width: 1000, height: 1500 },
+      'GOOGLE_MREC': { width: 300, height: 250 },
+      'GOOGLE_LEADERBOARD': { width: 728, height: 90 },
+      'GOOGLE_SQUARE': { width: 250, height: 250 },
+      'MAILCHIMP_BANNER': { width: 600, height: 300 },
+      'SHOPIFY_HERO': { width: 1920, height: 600 },
+    };
+    
+    return dimensionMap[platform] || { width: 800, height: 600 };
+  };
+
   return (
     <div className="mt-4 space-y-4">
       <div className="text-center p-3 bg-muted/20 rounded-lg">
         <p className="text-sm text-muted-foreground">
-          Templates optimized for <span className="font-medium text-primary">{platform.replace(/_/g, ' ')}</span>
+          AI-suggested templates for <span className="font-medium text-primary">{platform.replace(/_/g, ' ')}</span>
         </p>
         <p className="text-xs text-muted-foreground">Dimensions: {getDimensions()}</p>
       </div>
       
-      <div className="grid grid-cols-2 gap-3">
-        {templates.map((template) => (
+      <div className="grid grid-cols-2 gap-4">
+        {currentTemplates.map((template) => (
           <Card 
             key={template.id}
-            className="cursor-pointer hover:shadow-lg transition-all hover:scale-105 border-2 hover:border-primary"
+            className="cursor-pointer hover:shadow-lg transition-all hover:scale-105 border-2 hover:border-primary overflow-hidden"
             onClick={() => onSelect(template.id)}
           >
             <CardHeader className="pb-2">
-              <div className={`w-full h-16 ${template.preview} rounded-lg flex items-center justify-center mb-2 relative overflow-hidden`}>
-                <template.icon className="w-6 h-6 text-primary" />
-                <div className="absolute inset-0 bg-gradient-to-br from-transparent to-black/10" />
-              </div>
-              <CardTitle className="text-sm">{template.name}</CardTitle>
+              <TemplatePreview 
+                template={template}
+                userImage={userImage}
+                userText={userText}
+                dimensions={getDimensionsObject()}
+              />
+              <CardTitle className="text-sm mt-2">{template.name}</CardTitle>
             </CardHeader>
-            <CardContent className="pt-0">
-              <p className="text-xs text-muted-foreground">{template.description}</p>
-            </CardContent>
           </Card>
         ))}
       </div>
+
+      {currentSet < templateSets.length - 1 && (
+        <div className="text-center">
+          <Button 
+            variant="outline" 
+            onClick={() => setCurrentSet(prev => prev + 1)}
+            className="w-full"
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Show More Templates
+          </Button>
+        </div>
+      )}
+
+      {currentSet > 0 && (
+        <div className="text-center">
+          <Button 
+            variant="ghost" 
+            onClick={() => setCurrentSet(0)}
+            className="text-sm"
+          >
+            Back to First Set
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

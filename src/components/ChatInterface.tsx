@@ -10,6 +10,7 @@ import ThemeSelector from './ThemeSelector';
 import PlatformSelector from './PlatformSelector';
 import TemplateSelector from './TemplateSelector';
 import CampaignDetails from './CampaignDetails';
+import CampaignPreview from './CampaignPreview';
 
 const ChatInterface = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -104,6 +105,8 @@ const ChatInterface = () => {
           <TemplateSelector 
             platform={updatedData.platform!} 
             customDimensions={updatedData.customDimensions}
+            userImage={updatedData.image}
+            userText={updatedData.description}
             onSelect={handleTemplateSelect} 
           />
         );
@@ -115,13 +118,26 @@ const ChatInterface = () => {
   };
 
   const handleTemplateSelect = (templateId: string) => {
-    setCampaignData(prev => ({ ...prev, template: templateId }));
-    addMessage("Template selected! Generating your campaign...", 'user');
+    setCampaignData(prev => {
+      const updatedData = { ...prev, template: templateId };
+      
+      setTimeout(() => {
+        addMessage("🎉 Your campaign is ready! Here's your personalized design with your image and content integrated:", 'assistant',
+          <CampaignPreview 
+            campaignData={updatedData}
+            onDownload={() => addMessage("Campaign downloaded successfully! 📥", 'assistant')}
+            onPublish={() => addMessage("Campaign published to platform! 🚀", 'assistant')}
+            onRegenerate={() => addMessage("Regenerating campaign with new AI suggestions...", 'assistant')}
+            onEdit={() => addMessage("What would you like to edit?", 'assistant')}
+          />
+        );
+        setCurrentStep('preview');
+      }, 1000);
+      
+      return updatedData;
+    });
     
-    setTimeout(() => {
-      addMessage("🎉 Your campaign is ready! Here's your personalized design with your image and content integrated:", 'assistant');
-      setCurrentStep('preview');
-    }, 1000);
+    addMessage("Template selected! Generating your campaign...", 'user');
   };
 
   const handleSendMessage = () => {

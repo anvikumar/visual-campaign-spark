@@ -1,41 +1,94 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PlatformType } from '@/types/campaign';
 import { Sparkles, Minimize, MessageSquare, Image, Type, Zap, RefreshCw } from 'lucide-react';
 import TemplatePreview from './TemplatePreview';
+import { TemplateCrawlerService } from '@/services/templateCrawler';
+import { OpenAIService } from '@/services/openai';
+import { useToast } from '@/components/ui/use-toast';
 
 interface TemplateSelectorProps {
   platform: PlatformType;
   customDimensions?: { width: number; height: number };
   userImage?: string;
   userText?: string;
-  onSelect: (templateId: string) => void;
+  extractedThemes?: any;
+  onSelect: (templateId: string, templateData: any) => void;
 }
 
-const TemplateSelector: React.FC<TemplateSelectorProps> = ({ platform, customDimensions, userImage, userText, onSelect }) => {
+const TemplateSelector: React.FC<TemplateSelectorProps> = ({ 
+  platform, 
+  customDimensions, 
+  userImage, 
+  userText, 
+  extractedThemes, 
+  onSelect 
+}) => {
   const [currentSet, setCurrentSet] = useState(0);
+  const [aiRecommendedTemplates, setAiRecommendedTemplates] = useState<any[]>([]);
+  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
+  const { toast } = useToast();
 
-  const templateSets = [
-    [
-      { id: 'hero-overlay', name: 'Hero Overlay', style: 'bold-text-overlay' },
-      { id: 'split-layout', name: 'Split Layout', style: 'image-text-split' },
-      { id: 'minimal-frame', name: 'Minimal Frame', style: 'clean-border' },
-      { id: 'testimonial-style', name: 'Testimonial Style', style: 'quote-bubble' },
-      { id: 'product-showcase', name: 'Product Showcase', style: 'feature-highlights' },
-      { id: 'dynamic-burst', name: 'Dynamic Burst', style: 'motion-elements' }
-    ],
-    [
-      { id: 'magazine-spread', name: 'Magazine Spread', style: 'editorial-layout' },
-      { id: 'neon-glow', name: 'Neon Glow', style: 'vibrant-neon' },
-      { id: 'vintage-poster', name: 'Vintage Poster', style: 'retro-aesthetic' },
-      { id: 'geometric-modern', name: 'Geometric Modern', style: 'sharp-angles' },
-      { id: 'watercolor-artistic', name: 'Watercolor Artistic', style: 'soft-artistic' },
-      { id: 'tech-futuristic', name: 'Tech Futuristic', style: 'sci-fi-modern' }
-    ]
-  ];
+  // Get templates from crawler service
+  const allTemplates = TemplateCrawlerService.getTemplatesForPlatform(platform);
+  
+  // Convert to the format expected by the component
+  const availableTemplates = allTemplates.map(t => ({
+    id: t.id,
+    name: t.name,
+    style: t.style
+  }));
 
-  const currentTemplates = templateSets[currentSet];
+  useEffect(() => {
+    if (extractedThemes && availableTemplates.length > 0) {
+      loadAIRecommendations();
+    }
+  }, [extractedThemes, platform]);
+
+  const loadAIRecommendations = async () => {
+    if (!extractedThemes) return;
+    
+    setIsLoadingRecommendations(true);
+    try {
+      const recommendations = await OpenAIService.recommendTemplates(
+        platform,
+        extractedThemes,
+        availableTemplates
+      );
+      setAiRecommendedTemplates(recommendations);
+    } catch (error) {
+      console.error('Failed to get AI recommendations:', error);
+      toast({
+        title: "AI Recommendations Unavailable",
+        description: "Showing all available templates instead.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoadingRecommendations(false);
+    }
+  };
+
+  // Use AI recommendations if available, otherwise fall back to chunks of available templates
+  const getDisplayTemplates = () => {
+    if (aiRecommendedTemplates.length > 0) {
+      const startIndex = currentSet * 6;
+      return aiRecommendedTemplates.slice(startIndex, startIndex + 6).map(rec => ({
+        id: rec.templateId,
+        name: rec.templateName,
+        style: rec.description,
+        aiScore: rec.suitabilityScore,
+        reasoning: rec.reasoning
+      }));
+    }
+    
+    // Fallback to chunked available templates
+    const chunkSize = 6;
+    const startIndex = currentSet * chunkSize;
+    return availableTemplates.slice(startIndex, startIndex + chunkSize);
+  };
+
+  const currentTemplates = getDisplayTemplates();
 
   const getDimensions = () => {
     if (customDimensions) return `${customDimensions.width}x${customDimensions.height}`;
@@ -81,9 +134,12 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({ platform, customDim
     <div className="mt-4 space-y-4">
       <div className="text-center p-3 bg-muted/20 rounded-lg">
         <p className="text-sm text-muted-foreground">
-          AI-suggested templates for <span className="font-medium text-primary">{platform.replace(/_/g, ' ')}</span>
+          {aiRecommendedTemplates.length > 0 ? 'AI-Recommended Templates' : 'Available Templates'} for <span className="font-medium text-primary">{platform.replace(/_/g, ' ')}</span>
         </p>
         <p className="text-xs text-muted-foreground">Dimensions: {getDimensions()}</p>
+        {isLoadingRecommendations && (
+          <p className="text-xs text-primary mt-1">🤖 AI is analyzing the best templates for your image...</p>
+        )}
       </div>
       
       <div className="grid grid-cols-2 gap-4">
@@ -91,7 +147,7 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({ platform, customDim
           <Card 
             key={template.id}
             className="cursor-pointer hover:shadow-lg transition-all hover:scale-105 border-2 hover:border-primary overflow-hidden"
-            onClick={() => onSelect(template.id)}
+            onClick={() => onSelect(template.id, template)}
           >
             <CardHeader className="pb-2">
               <TemplatePreview 
@@ -100,24 +156,40 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({ platform, customDim
                 userText={userText}
                 dimensions={getDimensionsObject()}
               />
-              <CardTitle className="text-sm mt-2">{template.name}</CardTitle>
+              <div className="flex items-center justify-between mt-2">
+                <CardTitle className="text-sm">{template.name}</CardTitle>
+                {template.aiScore && (
+                  <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-xs">
+                    {template.aiScore}/10
+                  </span>
+                )}
+              </div>
+              {template.reasoning && (
+                <p className="text-xs text-primary/70 italic mt-1">{template.reasoning}</p>
+              )}
             </CardHeader>
           </Card>
         ))}
       </div>
 
-      {currentSet < templateSets.length - 1 && (
-        <div className="text-center">
-          <Button 
-            variant="outline" 
-            onClick={() => setCurrentSet(prev => prev + 1)}
-            className="w-full"
-          >
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Show More Templates
-          </Button>
-        </div>
-      )}
+      {(() => {
+        const hasMoreTemplates = aiRecommendedTemplates.length > 0 
+          ? (currentSet + 1) * 6 < aiRecommendedTemplates.length
+          : (currentSet + 1) * 6 < availableTemplates.length;
+        
+        return hasMoreTemplates && (
+          <div className="text-center">
+            <Button 
+              variant="outline" 
+              onClick={() => setCurrentSet(prev => prev + 1)}
+              className="w-full"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Show More Templates
+            </Button>
+          </div>
+        );
+      })()}
 
       {currentSet > 0 && (
         <div className="text-center">
@@ -126,7 +198,7 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({ platform, customDim
             onClick={() => setCurrentSet(0)}
             className="text-sm"
           >
-            Back to First Set
+            Back to Top Recommendations
           </Button>
         </div>
       )}

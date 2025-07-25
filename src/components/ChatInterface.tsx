@@ -11,6 +11,10 @@ import PlatformSelector from './PlatformSelector';
 import TemplateSelector from './TemplateSelector';
 import CampaignDetails from './CampaignDetails';
 import CampaignPreview from './CampaignPreview';
+import APIKeySetup from './APIKeySetup';
+import PreviewPanel from './PreviewPanel';
+import { OpenAIService } from '@/services/openai';
+import { useToast } from '@/components/ui/use-toast';
 
 const ChatInterface = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -23,7 +27,12 @@ const ChatInterface = () => {
   ]);
   const [input, setInput] = useState('');
   const [campaignData, setCampaignData] = useState<CampaignData>({});
-  const [currentStep, setCurrentStep] = useState<'upload' | 'analyze' | 'theme' | 'platform' | 'details' | 'template' | 'preview'>('upload');
+  const [currentStep, setCurrentStep] = useState<'setup' | 'upload' | 'analyze' | 'theme' | 'platform' | 'details' | 'template' | 'preview'>('setup');
+  const [extractedThemes, setExtractedThemes] = useState<any>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
+  const [showPreviewPanel, setShowPreviewPanel] = useState(false);
+  const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -45,30 +54,57 @@ const ChatInterface = () => {
     setMessages(prev => [...prev, newMessage]);
   };
 
-  const handleImageUpload = (imageUrl: string, tags: string[], description: string) => {
+  const handleImageUpload = async (imageUrl: string, tags: string[], description: string) => {
     setCampaignData(prev => ({ ...prev, image: imageUrl, tags, description }));
-    addMessage("Here's what I found in your image! ✨", 'assistant', 
-      <div className="mt-4 space-y-4">
-        <img src={imageUrl} alt="Uploaded" className="w-full max-w-xs rounded-lg" />
-        <div>
-          <p className="text-sm text-muted-foreground mb-2">{description}</p>
-          <div className="flex flex-wrap gap-2">
-            {tags.map((tag, index) => (
-              <span key={index} className="px-2 py-1 bg-primary/10 text-primary rounded-full text-xs">
-                {tag}
-              </span>
-            ))}
+    addMessage("Image uploaded! Analyzing with AI...", 'assistant');
+    
+    setIsAnalyzing(true);
+    try {
+      const themes = await OpenAIService.extractImageThemes(imageUrl, description, tags);
+      setExtractedThemes(themes);
+      
+      addMessage("AI Analysis Complete! ✨", 'assistant', 
+        <div className="mt-4 space-y-4">
+          <img src={imageUrl} alt="Uploaded" className="w-full max-w-xs rounded-lg" />
+          <div className="space-y-3">
+            <div>
+              <p className="text-sm font-medium">AI-Generated Themes:</p>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {themes.themes.map((theme, index) => (
+                  <span key={index} className="px-2 py-1 bg-primary/10 text-primary rounded-full text-xs">
+                    {theme}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-medium">Primary Theme: <span className="text-primary">{themes.primaryTheme}</span></p>
+              <p className="text-sm text-muted-foreground">Target: {themes.targetAudience}</p>
+            </div>
           </div>
         </div>
-      </div>
-    );
-    
-    setTimeout(() => {
-      addMessage("Perfect! Now let's choose a campaign theme that matches your image. What vibe are you going for?", 'assistant',
+      );
+      
+      setTimeout(() => {
+        addMessage("Now, which platform will you be advertising on?", 'assistant',
+          <PlatformSelector onSelect={handlePlatformSelect} />
+        );
+        setCurrentStep('platform');
+      }, 1500);
+      
+    } catch (error) {
+      toast({
+        title: "Analysis Error",
+        description: "Failed to analyze image. Please try again.",
+        variant: "destructive"
+      });
+      addMessage("Sorry, I couldn't analyze your image. Let's continue manually.", 'assistant',
         <ThemeSelector onSelect={handleThemeSelect} />
       );
       setCurrentStep('theme');
-    }, 1000);
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleThemeSelect = (theme: string) => {
@@ -107,6 +143,7 @@ const ChatInterface = () => {
             customDimensions={updatedData.customDimensions}
             userImage={updatedData.image}
             userText={updatedData.description}
+            extractedThemes={extractedThemes}
             onSelect={handleTemplateSelect} 
           />
         );
@@ -117,27 +154,13 @@ const ChatInterface = () => {
     });
   };
 
-  const handleTemplateSelect = (templateId: string) => {
-    addMessage("Template selected! Generating your campaign...", 'user');
+  const handleTemplateSelect = (templateId: string, templateData: any) => {
+    addMessage("Template selected! Opening preview panel...", 'user');
     
-    setCampaignData(prev => {
-      const updatedData = { ...prev, template: templateId };
-      
-      setTimeout(() => {
-        addMessage("🎉 Your campaign is ready! Here's your personalized design with your image and content integrated:", 'assistant',
-          <CampaignPreview 
-            campaignData={updatedData}
-            onDownload={handleDownload}
-            onPublish={handlePublish}
-            onRegenerate={handleRegenerate}
-            onEdit={handleEdit}
-          />
-        );
-        setCurrentStep('preview');
-      }, 1500);
-      
-      return updatedData;
-    });
+    setSelectedTemplate(templateData);
+    setCampaignData(prev => ({ ...prev, template: templateId }));
+    setShowPreviewPanel(true);
+    setCurrentStep('preview');
   };
 
   const handleDownload = () => {
@@ -158,6 +181,7 @@ const ChatInterface = () => {
           customDimensions={campaignData.customDimensions}
           userImage={campaignData.image}
           userText={campaignData.description}
+          extractedThemes={extractedThemes}
           onSelect={handleTemplateSelect} 
         />
       );
@@ -203,7 +227,15 @@ const ChatInterface = () => {
           <MessageBubble key={message.id} message={message} />
         ))}
         
-        {currentStep === 'upload' && (
+        {currentStep === 'setup' && !OpenAIService.getApiKey() && (
+          <div className="flex justify-start">
+            <div className="max-w-md">
+              <APIKeySetup onSetup={() => setCurrentStep('upload')} />
+            </div>
+          </div>
+        )}
+        
+        {currentStep === 'upload' && OpenAIService.getApiKey() && (
           <div className="flex justify-start">
             <div className="max-w-md">
               <ImageUploader onUpload={handleImageUpload} />
@@ -213,6 +245,19 @@ const ChatInterface = () => {
         
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Preview Panel */}
+      {showPreviewPanel && selectedTemplate && (
+        <PreviewPanel
+          campaignData={campaignData}
+          selectedTemplate={selectedTemplate}
+          isVisible={showPreviewPanel}
+          onClose={() => setShowPreviewPanel(false)}
+          onDownload={handleDownload}
+          onPublish={handlePublish}
+          onRegenerate={handleRegenerate}
+        />
+      )}
 
       {/* Input */}
       <div className="border-t bg-card/50 backdrop-blur-sm p-4">

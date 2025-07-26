@@ -43,6 +43,11 @@ const ChatInterface = () => {
     scrollToBottom();
   }, [messages]);
 
+  useEffect(() => {
+    console.log('Current step:', currentStep);
+    console.log('Has API key:', !!OpenAIService.getApiKey());
+  }, [currentStep]);
+
   const addMessage = (content: string, type: 'user' | 'assistant', component?: React.ReactNode) => {
     const newMessage: ChatMessage = {
       id: Date.now().toString(),

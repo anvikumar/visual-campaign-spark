@@ -14,16 +14,16 @@ export class TemplateCrawlerService {
   static getAllTemplates(): CrawledTemplate[] {
     return [
       // Instagram Feed Templates
-      { id: 'modern-minimal', name: 'Modern Minimal', style: 'Clean, minimal design with bold typography', platform: 'INSTAGRAM_FEED', category: 'minimal', source: 'internal' },
-      { id: 'vibrant-gradient', name: 'Vibrant Gradient', style: 'Colorful gradient backgrounds with dynamic elements', platform: 'INSTAGRAM_FEED', category: 'colorful', source: 'internal' },
-      { id: 'product-showcase', name: 'Product Showcase', style: 'Professional product display with pricing', platform: 'INSTAGRAM_FEED', category: 'ecommerce', source: 'internal' },
+      { id: 'modern-minimal', name: 'Modern Minimal', style: 'Clean, minimal design with bold typography', platform: 'INSTAGRAM_FEED', category: 'minimal', source: 'internal', imageUrl: '/templates/modern-minimal.png' },
+      { id: 'vibrant-gradient', name: 'Vibrant Gradient', style: 'Colorful gradient backgrounds with dynamic elements', platform: 'INSTAGRAM_FEED', category: 'colorful', source: 'internal', imageUrl: '/templates/vibrant-gradient.png' },
+      { id: 'product-showcase', name: 'Product Showcase', style: 'Professional product display with pricing', platform: 'INSTAGRAM_FEED', category: 'ecommerce', source: 'internal', imageUrl: '/templates/product-showcase.png' },
       { id: 'lifestyle-story', name: 'Lifestyle Story', style: 'Authentic lifestyle photography layout', platform: 'INSTAGRAM_FEED', category: 'lifestyle', source: 'internal' },
       { id: 'brand-announcement', name: 'Brand Announcement', style: 'Bold announcement design with call-to-action', platform: 'INSTAGRAM_FEED', category: 'promotional', source: 'internal' },
       { id: 'user-testimonial', name: 'User Testimonial', style: 'Social proof template with customer quotes', platform: 'INSTAGRAM_FEED', category: 'testimonial', source: 'internal' },
       
       // Instagram Story Templates  
-      { id: 'story-poll', name: 'Interactive Poll', style: 'Engaging poll template with custom graphics', platform: 'INSTAGRAM_STORY', category: 'interactive', source: 'internal' },
-      { id: 'story-tutorial', name: 'Tutorial Steps', style: 'Step-by-step tutorial layout', platform: 'INSTAGRAM_STORY', category: 'educational', source: 'internal' },
+      { id: 'story-poll', name: 'Interactive Poll', style: 'Engaging poll template with custom graphics', platform: 'INSTAGRAM_STORY', category: 'interactive', source: 'internal', imageUrl: '/templates/story-poll.png' },
+      { id: 'story-tutorial', name: 'Tutorial Steps', style: 'Step-by-step tutorial layout', platform: 'INSTAGRAM_STORY', category: 'educational', source: 'internal', imageUrl: '/templates/story-tutorial.png' },
       { id: 'story-behind-scenes', name: 'Behind the Scenes', style: 'Casual behind-the-scenes template', platform: 'INSTAGRAM_STORY', category: 'lifestyle', source: 'internal' },
       { id: 'story-promotion', name: 'Flash Sale', style: 'Urgent promotional design with countdown', platform: 'INSTAGRAM_STORY', category: 'promotional', source: 'internal' },
       

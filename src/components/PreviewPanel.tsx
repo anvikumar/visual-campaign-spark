@@ -5,11 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Download, Share, RefreshCw, Edit, Save, X } from 'lucide-react';
 import { CampaignData } from '@/types/campaign';
-import TemplatePreview from './TemplatePreview';
+import CanvasEditor from './CanvasEditor';
 
 interface PreviewPanelProps {
   campaignData: CampaignData;
-  selectedTemplate: { id: string; name: string; style: string };
+  selectedTemplate: { id: string; name: string; style: string; imageUrl?: string };
   isVisible: boolean;
   onClose: () => void;
   onDownload: () => void;
@@ -29,6 +29,7 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editableText, setEditableText] = useState(campaignData.description || '');
   const [editableTitle, setEditableTitle] = useState('Your Campaign');
+  const [finalDesign, setFinalDesign] = useState<string | null>(null);
 
   const getDimensionsObject = () => {
     if (campaignData.customDimensions) return campaignData.customDimensions;
@@ -53,6 +54,17 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({
   const handleSaveEdits = () => {
     setIsEditing(false);
     // In a real app, you'd update the campaign data here
+  };
+
+  const handleCanvasSave = (dataUrl: string) => {
+    setFinalDesign(dataUrl);
+    setIsEditing(false);
+  };
+
+  const getTemplateImageUrl = () => {
+    if (selectedTemplate.imageUrl) return selectedTemplate.imageUrl;
+    // Construct URL from template ID for images in public folder
+    return `/templates/${selectedTemplate.id}.png`;
   };
 
   if (!isVisible) return null;
@@ -93,15 +105,24 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({
               {campaignData.platform?.replace(/_/g, ' ')} • {selectedTemplate.name}
             </p>
           </CardHeader>
-          <CardContent className="flex justify-center pb-3">
-            <div className="scale-90 origin-top">
-              <TemplatePreview 
-                template={selectedTemplate}
+          <CardContent className="pb-3">
+            {finalDesign ? (
+              <div className="flex justify-center">
+                <img 
+                  src={finalDesign} 
+                  alt="Final campaign design"
+                  className="max-w-full h-auto rounded border"
+                  style={{ maxHeight: '400px' }}
+                />
+              </div>
+            ) : (
+              <CanvasEditor
+                templateImage={getTemplateImageUrl()}
                 userImage={campaignData.image}
-                userText={isEditing ? editableText : campaignData.description}
                 dimensions={getDimensionsObject()}
+                onSave={handleCanvasSave}
               />
-            </div>
+            )}
           </CardContent>
         </Card>
 
@@ -165,20 +186,29 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({
 
         {/* Action Buttons */}
         <div className="space-y-2">
-          <Button onClick={onDownload} className="w-full" size="sm">
-            <Download className="w-3 h-3 mr-2" />
-            Download
-          </Button>
-          <div className="grid grid-cols-2 gap-2">
-            <Button onClick={onPublish} variant="outline" size="sm">
-              <Share className="w-3 h-3 mr-2" />
-              Publish
-            </Button>
-            <Button onClick={onRegenerate} variant="outline" size="sm">
+          {finalDesign ? (
+            <>
+              <Button onClick={onDownload} className="w-full" size="sm">
+                <Download className="w-3 h-3 mr-2" />
+                Download
+              </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button onClick={onPublish} variant="outline" size="sm">
+                  <Share className="w-3 h-3 mr-2" />
+                  Publish
+                </Button>
+                <Button onClick={() => setFinalDesign(null)} variant="outline" size="sm">
+                  <Edit className="w-3 h-3 mr-2" />
+                  Edit More
+                </Button>
+              </div>
+            </>
+          ) : (
+            <Button onClick={onRegenerate} variant="outline" className="w-full" size="sm">
               <RefreshCw className="w-3 h-3 mr-2" />
-              Regenerate
+              Regenerate Template
             </Button>
-          </div>
+          )}
         </div>
       </div>
     </div>

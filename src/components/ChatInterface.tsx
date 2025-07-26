@@ -46,6 +46,11 @@ const ChatInterface = () => {
   useEffect(() => {
     console.log('Current step:', currentStep);
     console.log('Has API key:', !!OpenAIService.getApiKey());
+    
+    // Auto-advance to upload step if API key exists
+    if (currentStep === 'setup' && OpenAIService.getApiKey()) {
+      setCurrentStep('upload');
+    }
   }, [currentStep]);
 
   const addMessage = (content: string, type: 'user' | 'assistant', component?: React.ReactNode) => {
